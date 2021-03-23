@@ -24,158 +24,192 @@ client.once("ready", () => {
 });
 
 client.on("message", function(message){
-    
     if(!message.content.startsWith(prefix) || message.author.bot) return;
+
+    let currentTime = new Date();
+    currentTime.toDateString();
     
-    console.log("Parsing valid message: '" + message.content + "' from " + message.member.nickname + ".");
+    console.log( currentTime + " Parsing valid message: '" + message.content + "' from " + message.author.username + "#" + message.author.discriminator + ".");
     
     const commandBody = message.content.slice(prefix.length);
     const args = commandBody.trim().split(' ');
     const command = args.shift().toLowerCase();
 
-    if (command === 'test') {
-        message.channel.send("<@" + message.author.id + "> \n" +
-        "Second line. **Bold text.**");
-        
-    }
+    if (!message.guild){
+        // Direct Messages or Private Group Messages
+        message.author.send("Hey, you should talk with me through the server that you are.");
 
-    if (command === 'help') {
-        const embed = new Discord.MessageEmbed()
-            .setColor('#00ffff')
-            .setTitle('Information')
-            .setURL("https://breakfast.vercel.app/")
-            .setAuthor('Breakfast Table')
-            .setDescription('For administrative commands, please call this command on admin channels.')            
-            .setTimestamp()
-            .setFooter('Breakfast Guild')
-            .addFields(
-                { name: 'Register on our Webapp', value: '/table register youruser youremail@mail.com' }
-            );
-        
-        if(message.channel.name === "admin") {
-            embed.addField('Get Registered Members', '/table getusers');
-            message.channel.send(embed);
-        } else {
-            message.channel.send(embed);
-        }
-    }
-        
-    if (command === 'getusers') {
-        if(message.channel.name === "admin") {
-            management.getUsers()
-            .then((result) => {
-                message.reply("There are " + result.length + " registered members.");
-            })
-            .catch((err) => {
-                console.error(err);
-            });
-        } else {
-            message.reply("This command is exclusive to administrators.");
-        }
-    }
 
-    if (command === "register") {
-        var currentTime = new Date();
-        currentTime.toLocaleDateString();
-        
-        console.log("Command /register requested by " + message.author.username + message.author.discriminator + " at " + currentTime);
-        
-        
-        
-        // Check if user is not registered already
-        if(!message.member.roles.cache.some(r => r.name === "Registered")) {
+    } else { // Else, if it has a guild, that means it was sent on a server.
 
-            // Validate args
-            if(args.length) {
-                let username = args[0].toLowerCase();
-                let email = args[1].toLowerCase();
-                
-                // Validate Username
-                if(username.length >= 3 && username.length <= 15) {
-
-                    // Validate Email
-                    if(validator.validate(email)) {
-
-                        console.log('Registering username ' + args[0]);
+    
+        if (command === 'test') {
+            message.channel.send("<@" + message.author.id + "> \n" +
+            "Second line. **Bold text.**");
                         
-                        var randomString = Math.random().toString(36).slice(-8);
-                        console.log(randomString);
-                        
-                        const body = {
-                            "client_id": process.env.AUTH0_CLIENTID,
-                            "connection": process.env.AUTH0_DB_CONNECTION,
-                            "email": email,
-                            "username": username,
-                            "password": randomString,
-                            "picture": message.author.avatarURL(),
-                            "user_metadata": { 
-                                createdAt: currentTime, 
-                                createdByDiscordUsedId: message.author.id, 
-                                discordUsernameAtCreation: message.author.username + "#" + message.author.discriminator,
-                                discordRank: "meal",
-                            },
-                        };
+        } else 
+        if (command === 'help') {
+            const embed = new Discord.MessageEmbed()
+                .setColor('#00ffff')
+                .setTitle('Information')
+                .setURL("https://breakfast.vercel.app/")
+                .setAuthor('Breakfast Table')
+                .setDescription('For administrative commands, please call this command on admin channels.')            
+                .setTimestamp()
+                .setFooter('Breakfast Guild')
+                .addFields(
+                    { name: 'Register on our Webapp', value: '/table register youruser youremail@mail.com' }
+                );
+            
+            if(message.channel.name === "admin") {
+                embed.addField('Get Registered Members', '/table getusers');
+                message.channel.send(embed);
+            } else {
+                message.channel.send(embed);
+            }
+        } else
+        if (command === 'getusers') {
+            if(message.channel.name === "admin") {
+                management.getUsers()
+                .then((result) => {
+                    message.reply("There are " + result.length + " registered members.");
+                })
+                .catch((err) => {
+                    console.error(err);
+                });
+            } else {
+                message.reply("This command is exclusive to administrators.");
+            }
+        } else 
+        if (command === 'resetpwd') {
+            let currentTime = new Date();
+            currentTime.toDateString();
+            console.log("Command /resetpwd requested by " + message.author.username + message.author.discriminator + " at " + currentTime);
+            
+            // Check if the user is already registered - this is a command exclusive to Registered users
+            if(message.member.roles.cache.some(r => r.name === "Registered")) {
+                message.reply("Feature not implemented yet.");
+                message.delete();
+            } else {
+                message.reply("You are not a Registered user. Please register yourself using `/table register username example@email.com`.\n" + "For more information, please use /table help.")
+                message.delete();
+            }
 
-                        fetch("https://" + process.env.AUTH0_DOMAIN + "/dbconnections/signup", {
-                            method: "POST",
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body),
-                        })
-                        .then(
-                            (res) => {
-                                if (res.status != 200) {
+        } else
+        if (command === 'register') {
+            let currentTime = new Date();
+            currentTime.toLocaleDateString();
+            
+            console.log("Command /register requested by " + message.author.username + message.author.discriminator + " at " + currentTime);
+            
+            
+            
+            // Check if user is not registered already
+            if(!message.member.roles.cache.some(r => r.name === "Registered")) {
 
-                                } else {
-                                    var role = message.guild.roles.cache.find(role => role.name === "Registered");
-                                    message.member.roles.add(role);
-                                    message.author.send(
-                                        "**Hey <@" + message.author.id + ">**\n" + 
-                                        "Your account was succesfully registered at our Webapp.\n" +
-                                        "\n" +
-                                        "**Email: **" + email + " **Username:** " + username + "\n" +
-                                        "\n" + 
-                                        "We sent you a verification email. It should take a minute for you to receive it. \n" +
-                                        'After your account verification, head to our **Login** page and click on "Forgot Password?" to reset your password.\n' +
-                                        "We have set a randomized password so you can change it to whatever you'd like without the need to send it publicily on our discord channels. \n" +
-                                        "\n"+
-                                        "Follow the instructions on the email that you received. \n" + 
-                                        "That's pretty much it. Welcome!"
-                                    )
-                                    console.log("Status 200: Registered a new user successfully.");
-                                    // console.log(res);
-                                    message.delete();
+                // Validate args
+                if(args.length) {
+                    let username = args[0].toLowerCase();
+                    let email = args[1].toLowerCase();
+                    
+                    // Validate Username
+                    if(username.length >= 3 && username.length <= 15) {
+
+                        // Validate Email
+                        if(validator.validate(email)) {
+
+                            console.log('Attempt to register user: ' + username + ' to email: ' + email);
+                            
+                            var randomString = Math.random().toString(36).slice(-8);
+                                                    
+                            const body = {
+                                "connection": process.env.AUTH0_DB_CONNECTION,
+                                "email": email,
+                                "username": username,
+                                "password": randomString,
+                                "email_verified": false,
+                                "picture": message.author.avatarURL()
+                                // "app_metadata": { 
+                                //     createdAt: currentTime, 
+                                //     createdByDiscordUsedId: message.author.id, 
+                                //     discordUsernameAtCreation: message.author.username + "#" + message.author.discriminator,
+                                //     discordRank: "meal",
+                                // },
+                            };
+
+                            var tempToken = `Bearer ${process.env.AUTH0_TEMP_TOKEN}`
+
+                            fetch("https://" + process.env.AUTH0_DOMAIN + "/api/v2/users", {
+                                method: "POST",
+                                headers: { 'Content-Type': 'application/json', 'Authorization': tempToken },
+                                body: JSON.stringify(body),
+                            })
+                            .then(
+                                (res) => {
+                                    if (res.status != 201) {
+                                        message.reply("I couldn't register your account. Please talk with one of our administrators. Status Code: **" + res.status + "**");
+                                        
+                                        let body = res.json().then((d) => console.log(d));
+
+                                        message.delete();
+                                    } else if (res.status === 409) {
+                                        message.reply("I couldn't register your account. This email or username already exists. \nPlease choose a new one.")
+
+                                        let body = res.json().then((d) => console.log(d));
+                                        message.delete();
+                                    } else if (res.status === 201 ){    
+                                        var role = message.guild.roles.cache.find(role => role.name === "Registered");
+                                        message.member.roles.add(role);
+                                        message.author.send(
+                                            "**Hey <@" + message.author.id + ">**\n" + 
+                                            "Your account was succesfully registered at our Webapp.\n" +
+                                            "\n" +
+                                            "**Email: **" + email + " **Username:** " + username + "\n" +
+                                            "\n" + 
+                                            "We sent you a verification email. It should take a minute for you to receive it. \n" +
+                                            'After your account verification, head to our **Login** page and click on "Forgot Password?" to reset your password.\n' +
+                                            "We have set a randomized password so you can change it to whatever you'd like without the need to send it publicily on our discord channels. \n" +
+                                            "\n"+
+                                            "Follow the instructions on the email that you received. \n" + 
+                                            "That's pretty much it. Welcome!"
+                                        )
+                                        console.log("Status 201: Registered a new user successfully.");
+                                        // console.log(res);
+                                        message.delete();
+                                    }
                                 }
-                            }
-                        )
-                        .catch(
-                            (err) => {
-                                console.error(err.message);
-                            }
-                        );
+                            )
+                            .catch(
+                                (err) => {
+                                    console.error(err.message);
+                                }
+                            );
+                        } else {
+                            // Handle Err for Email Format
+                            valid = false;
+                            DMSendErr(message, 'Incorrect email format.');
+                            message.delete();
+                        }
                     } else {
-                        // Handle Err for Email Format
+                        // Handle Err for Username Length
                         valid = false;
-                        DMSendErr(message, 'Incorrect email format.');
+                        DMSendErr(message, 'Username length needs to be between 3 and 15 characters.');
                         message.delete();
                     }
                 } else {
-                    // Handle Err for Username Length
+                    // Handle Err for Incorrect args length
+                    console.log('Args length: '+ args.length);
                     valid = false;
-                    DMSendErr(message, 'Username length needs to be between 3 and 15 characters.');
+                    DMSendErr(message, 'You should provide your IGN in the following format, e.g.: ' + '"**/table register coffee coffee@gmail.com**".');
                     message.delete();
                 }
             } else {
-                // Handle Err for Incorrect args length
-                console.log('Args length: '+ args.length);
-                valid = false;
-                DMSendErr(message, 'You should provide your IGN in the following format, e.g.: ' + '"**/table register coffee coffee@gmail.com**".');
+                console.log("Registered user attempted to register another account."); // maybe call a function to FETCH POST to a DB so I can log and check if someone is trying to multi-register
+                message.reply("You have already registered an account. If you need help, please contact our staff members.");
                 message.delete();
             }
-        } else {
-            console.log("Registered user attempted to register another account."); // maybe call a function to FETCH POST to a DB so I can log and check if someone is trying to multi-register
-            message.reply("You have already registered an account. If you need help, please contact our staff members.");
-            message.delete();
         }
+        
     }
 });
 
