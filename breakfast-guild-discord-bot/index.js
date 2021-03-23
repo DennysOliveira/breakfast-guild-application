@@ -4,14 +4,14 @@ dotenv.config();
 const validator = require("email-validator");
 const Discord = require("discord.js");
 const fetch = require('node-fetch');
-const { prefix, token, auth0domain, auth0clientid, auth0secret, auth0token, auth0db_connection } = require('./config.json')
+const { prefix } = require('./config.json')
 
 var ManagementClient = require('auth0').ManagementClient;
 
 
 var management = new ManagementClient({
-  token: auth0token,
-  domain: auth0domain
+  token: process.env.AUTH0_TEMP_TOKEN,
+  domain: process.env.AUTH0_DOMAIN
 });
 
 
@@ -102,8 +102,8 @@ client.on("message", function(message){
                         console.log(randomString);
                         
                         const body = {
-                            "client_id": auth0clientid,
-                            "connection": auth0db_connection,
+                            "client_id": proccess.env.AUTH0_CLIENTID,
+                            "connection": process.env.AUTH0_DB_CONNECTION,
                             "email": email,
                             "username": username,
                             "password": randomString,
@@ -116,7 +116,7 @@ client.on("message", function(message){
                             },
                         };
 
-                        fetch("https://" + auth0domain + "/dbconnections/signup", {
+                        fetch("https://" + process.env.AUTH0_DOMAIN + "/dbconnections/signup", {
                             method: "POST",
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(body),
@@ -180,7 +180,7 @@ client.on("message", function(message){
 });
 
 
-client.login(token);
+client.login(process.env.DISCORD_APP_TOKEN);
 
 
 function DMSendErr(messageHandler, errMsg) {
