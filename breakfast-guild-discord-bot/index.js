@@ -102,7 +102,7 @@ client.on("message", function(message){
                         console.log(randomString);
                         
                         const body = {
-                            "client_id": proccess.env.AUTH0_CLIENTID,
+                            "client_id": process.env.AUTH0_CLIENTID,
                             "connection": process.env.AUTH0_DB_CONNECTION,
                             "email": email,
                             "username": username,
