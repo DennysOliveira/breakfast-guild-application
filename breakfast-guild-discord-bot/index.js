@@ -5,18 +5,31 @@ const validator = require("email-validator");
 const Discord = require("discord.js");
 const fetch = require('node-fetch');
 const { prefix } = require('./config.json')
+var fs = require('fs');
 
-var ManagementClient = require('auth0').ManagementClient;
+// Auth0 Global Variables
+var tokenGenerationTime;
+var managementToken;
+var managementTokenExpireTime = 86400; // in seconds
 
 
-var management = new ManagementClient({
-  token: process.env.AUTH0_TEMP_TOKEN,
-  domain: process.env.AUTH0_DOMAIN
-});
+async function defineAuth(){
+   // Get current time in SECONDS
+    tokenGenerationTime = ((Date.now()) / 1000);
+    managementToken = await GetManagementToken();
+    console.log(managementToken);
+    
+    var ManagementClient = require('auth0').ManagementClient;
 
+    var management = new ManagementClient({
+        token: managementToken.access_token,
+        domain: process.env.AUTH0_DOMAIN
+    }); 
+}
+
+defineAuth();
 
 const client = new Discord.Client();
-
 
 client.once("ready", () => {
     console.log("Ready!");
@@ -24,12 +37,69 @@ client.once("ready", () => {
 });
 
 client.on("message", function(message){
-    if(!message.content.startsWith(prefix) || message.author.bot) return;
-
+    // Get Formated Time
     let currentTime = new Date();
     currentTime.toDateString();
+
+    if(!message.content.startsWith(prefix)){
+        
+        if(message.guild){
+            let dir = "./logs/"+ message.channel.id;
+            
+            let log = ("[" + currentTime + "] " + message.author.username + "#" + message.author.discriminator + ": " + message.content + "\n");
+
+            fs.appendFile(`./logs/channels/${message.channel.id}.txt`, log, function(err) {
+                if(err) {
+                    // failed
+                    console.log(err);
+                } else {
+                    // done
+                }
+            });
+        } else {
+            fs.appendFile(`./logs/direct/log.txt`, message.content, function(err) {
+                if(err) {
+                    // failed
+                    console.log(err);
+                } else {
+                    // done
+                }
+            });
+        }
+        return;
+    }
+    else if (message.author.bot){
+        return;
+    }    
+
+    // Do Checks
+    currentTimeInSeconds = Date.now() / 1000;
+    let remainingTokenTime = ((tokenGenerationTime + managementTokenExpireTime - 1000) - (currentTimeInSeconds))
     
-    console.log( currentTime + " Parsing valid message: '" + message.content + "' from " + message.author.username + "#" + message.author.discriminator + ".");
+    // If token has expired, renew it.
+    if (remainingTokenTime < 0) {
+        console.log("Token Expired.")
+        tokenGenerationTime = ((Date.now()) / 1000);
+        managementToken = GetManagementToken(); 
+    }
+
+    // Log checks
+    console.log("Remaining token time in seconds: " + remainingTokenTime);
+
+    // Log Valid Messages to Console
+    let log = ( currentTime + " Parsing valid prefix: '" + message.content + "' from " + message.author.username + "#" + message.author.discriminator + ".");
+    console.log(log);
+
+    // Log to Permanent File
+    fs.appendFile('./logs/commands/log.txt', log, function(err) {
+        if(err) {
+            // failed
+            console.log(err);
+        } else {
+            // done
+        }
+    });
+
     
     const commandBody = message.content.slice(prefix.length);
     const args = commandBody.trim().split(' ');
@@ -128,21 +198,21 @@ client.on("message", function(message){
                                 "username": username,
                                 "password": randomString,
                                 "email_verified": false,
-                                "picture": message.author.avatarURL()
-                                // "app_metadata": { 
-                                //     createdAt: currentTime, 
-                                //     createdByDiscordUsedId: message.author.id, 
-                                //     discordUsernameAtCreation: message.author.username + "#" + message.author.discriminator,
-                                //     discordRank: "meal",
-                                // },
+                                // "picture": message.author.avatarURL()
+                                "app_metadata": { 
+                                    createdAt: currentTime, 
+                                    createdByDiscordUsedId: message.author.id, 
+                                    discordUsernameAtCreation: message.author.username + "#" + message.author.discriminator,
+                                    discordRank: "meal",
+                                },
                             };
-
-                            var tempToken = `Bearer ${process.env.AUTH0_TEMP_TOKEN}`
+                            
+                            
 
                             fetch("https://" + process.env.AUTH0_DOMAIN + "/api/v2/users", {
                                 method: "POST",
-                                headers: { 'Content-Type': 'application/json', 'Authorization': tempToken },
-                                body: JSON.stringify(body),
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${managementToken.access_token}` },
+                                body: JSON.stringify(body)
                             })
                             .then(
                                 (res) => {
@@ -223,4 +293,37 @@ function DMSendErr(messageHandler, errMsg) {
     messageHandler.author.send(errMsg);
 
     console.log('User ' + messageHandler.author.username + ' failed due to err: ' + errMsg);
+}
+
+async function GetManagementToken() {
+    // Grab a token from Management API v2
+    var details = {
+        grant_type: 'client_credentials',
+        client_id: process.env.AUTH0_MTM_CLIENT,
+        client_secret: process.env.AUTH0_MTM_SECRET,
+        audience: 'https://breakfast.us.auth0.com/api/v2/'
+    }
+
+    var formBody = [];
+    for (var property in details) {
+        var encodedKey = encodeURIComponent(property);
+        var encodedValue = encodeURIComponent(details[property]);
+        formBody.push(encodedKey + "=" + encodedValue);
+    }
+
+    formBody = formBody.join("&");
+
+    let res = await fetch('https://breakfast.us.auth0.com/oauth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: formBody
+    });
+
+    let data = await res.json();
+
+    console.log("fetch done");
+
+    if(res.status === 200) {
+        return data;
+    }
 }
