@@ -12,7 +12,7 @@ export default function DynamicAuthButton() {
     }
 
     if (isLoading) {
-        return (<p>Loading...</p>)
+        return (<span></span>)
     }
 
 

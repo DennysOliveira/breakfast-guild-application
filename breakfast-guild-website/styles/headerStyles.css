@@ -110,9 +110,12 @@ button:hover {
     border: 2px solid rgb(192, 192, 192);
 }
 
-.float-left {
-    margin-left: 40px;
+.float-left {    
     float: left;
+}
+
+.mainHeader {
+    margin-left: 40px;
 }
 
 .float-right {
@@ -133,3 +136,9 @@ button:hover {
     padding: 0;
     background-color: blue;
 }
+
+.profile-picture {
+    border: 1px solid black;
+    border-radius: 20px;
+}
+

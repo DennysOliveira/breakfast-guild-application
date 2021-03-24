@@ -1,10 +1,13 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import DynamicAuthButton from '../authentication/DynamicAuthButton';
 
-export default function Header() {
+
+
+
+
+
+function Header() {
     const { isAuthenticated, user, getAccessTokenSilently } = useAuth0();
     
     return (
@@ -49,9 +52,14 @@ export default function Header() {
                 <div className="float-right">
                         <ul>
                             {isAuthenticated &&
-                                <li>
-                                    Hello, {user.nickname}!
-                                </li>
+                                <>  
+                                    <li>
+                                        <img className="profile-picture" src={user.picture} width="40px" height="40px"></img>
+                                    </li>
+                                    <li>
+                                        Hello, {user.nickname}!                                        
+                                    </li>
+                                </>
                             }
                             
                             <li>
@@ -63,3 +71,5 @@ export default function Header() {
         </div>
     )
 }
+
+export default Header;

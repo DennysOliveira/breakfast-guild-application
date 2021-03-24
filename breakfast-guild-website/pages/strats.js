@@ -1,5 +1,6 @@
 import Layout from "../components/Layout"
 import StratsMD from "../components/StratsMarkdown"
+import HeaderSpacer from "../components/HeaderSpacer"
 import { useAuth0 } from "@auth0/auth0-react"
 
 
@@ -24,6 +25,7 @@ export default function About() {
     return (
       <>
         <Layout title={title}>
+          <HeaderSpacer />
           <StratsMD />
         </Layout>      
       </>
